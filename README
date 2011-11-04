@@ -1,0 +1,6 @@
+ig-files is a minimal I/O library to read and write specially formatted JSON 
+files.
+
+The file format has been used by various HEP projects, including CMS outreach
+event display, iSpy (<http://cern.ch/iguana/ispy/>).
+
