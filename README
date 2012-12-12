@@ -1,7 +1,7 @@
 igfiles is a minimal I/O library to read and write specially formatted JSON 
 files used for iSpy: an event display for CMS data at the LHC.
 
-http://iguana.cern.ch/ispy
+http://cern.ch/ispy
 
 giulio.eulisse@cern.ch
 thomas.mccauley@cern.ch
