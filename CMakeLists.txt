@@ -37,3 +37,5 @@ add_test(test_igfiles ${EXECUTABLE_OUTPUT_PATH}/test_igfiles)
 install(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(TARGETS igdumpstats DESTINATION bin)
 install(TARGETS IgFiles DESTINATION lib)
+
+set_target_properties(IgFiles PROPERTIES COMPILE_FLAGS -fPIC)
