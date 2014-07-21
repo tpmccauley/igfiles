@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/..
+exec_prefix=${pcfiledir}/..
+libdir=${pcfiledir}/../lib
+includedir=${pcfiledir}/../include
+
+
+Name: IgFiles
+Description: IgFiles
+Version: trunk
+Libs: -L${pcfiledir}/../lib -lIgFiles
+Cflags: -I${pcfiledir}/../include
