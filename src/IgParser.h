@@ -134,7 +134,7 @@ public:
 
   void parseDoubleTuple(double *result, size_t e)
     {
-      m_buffer += strspn(m_buffer, "\n\t (");;
+      m_buffer += strspn(m_buffer, "\n\t ([");
       switch(e)
       {
         case 4: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t ,");
@@ -142,6 +142,7 @@ public:
         case 2: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t ,");
         case 1: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t )");
       }
+      checkChar(']');
     }
 
   void parseAssociation(void)
@@ -347,11 +348,11 @@ public:
       catch(ParseError &e)
       {
         int position = m_buffer - m_initialBuffer ;
-        std::string parsedSentence(m_initialBuffer + position);
+        std::string parsedSentence(m_buffer);
         size_t endOfLinePos = parsedSentence.find('\n');
         if (endOfLinePos != std::string::npos)
         {
-          parsedSentence = std::string(parsedSentence, endOfLinePos);
+          parsedSentence = std::string(parsedSentence, 0, endOfLinePos);
         }
         std::cerr << "Error at char n. " << position << std::endl;
         std::cerr << parsedSentence << std::endl;
