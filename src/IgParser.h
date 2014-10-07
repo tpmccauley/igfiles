@@ -1,6 +1,9 @@
 #ifndef IGUANA_IG_PARSER_H
 #define IGUANA_IG_PARSER_H
+
 #include <IgCollection.h>
+
+#include <limits>
 
 class ParseError
 {
@@ -37,6 +40,10 @@ public:
       else if(type == "int")
       {
         m_currentCollection->addProperty(name.c_str(), static_cast<int>(0));
+      }
+      else if(type == "long")
+      {
+        m_currentCollection->addProperty(name.c_str(), static_cast<long>(0));
       }
       else if(type == "double")
       {
@@ -104,15 +111,37 @@ public:
       m_buffer = endbuf;
     }
 
-
-  void parseDouble(double &result)
+  void parseLong(long &result)
     {
       char *endbuf;
-      result = strtod(m_buffer, &endbuf);
+      result = strtol(m_buffer, &endbuf, 10);
       if (!endbuf)
       { throwParseError(m_buffer-m_initialBuffer); }
       m_buffer = endbuf;
     }
+
+  void parseDouble(double &result)
+    {
+      char *endbuf;
+	  result = strtod(m_buffer, &endbuf);
+	  if ( endbuf == m_buffer )
+	  {
+//        Check for NAN in case strtod does not support it (ie, VS). Only looks for standard string, not the full NAN(n-char-sequence) string.
+		  const char *p = m_buffer;
+		  while (isspace(*p)) { p++; }
+		  if (strncmp(p,"NAN",3) ==0 || strncmp(p,"NaN",3) == 0  || strncmp(p,"nan",3) == 0 )
+		  {
+			  result = std::numeric_limits<double>::quiet_NaN();
+			  endbuf = const_cast<char*>(p)+3;
+		  }
+		  else
+		  {
+
+			  throwParseError(m_buffer-m_initialBuffer);
+		  }
+	  }
+	  m_buffer = endbuf;
+  }
 
   void parseString(std::string &result)
     {
@@ -134,13 +163,34 @@ public:
 
   void parseDoubleTuple(double *result, size_t e)
     {
-      m_buffer += strspn(m_buffer, "\n\t (");;
+      if ( int i = strspn(m_buffer, "\n\t (") )
+        m_buffer += i;
+      if ( int j = strspn(m_buffer, "\n\t [") )
+        m_buffer += j;
+
       switch(e)
       {
         case 4: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t ,");
         case 3: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t ,");
         case 2: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t ,");
-        case 1: parseDouble(*result++); m_buffer += strspn(m_buffer, "\n\t )");
+        case 1:
+          {
+            parseDouble(*result++);
+
+            if ( int k = strspn(m_buffer, "\n\t )") )
+            {
+              m_buffer += k;
+              break;
+            }
+            if ( strspn(m_buffer, "\n\t ]") )
+            {
+              // No matter how many closing ]s we have
+              // we only want to increment by one
+              // so that we catch the closing ] of the tuple
+              m_buffer += 1;
+              break;
+            }
+          }
       }
     }
 
@@ -175,7 +225,8 @@ public:
       m_currentAssociations->reserve(100000);
       skipChar(':');
       skipChar('[');
-      if (checkChar(']')) return;
+
+    if (checkChar(']')) return;
       do
       {
         parseAssociation();
@@ -219,8 +270,8 @@ public:
       std::vector<int> types(m_currentCollection->properties().size(), 0);
       for (size_t ti = 0, te = types.size(); ti != te; ++ti)
         types[ti] = m_currentCollection->properties()[ti].handle().type();
-      
-      do 
+
+      do
       {
         if (currentRow >= maxSize)
         {
@@ -237,6 +288,9 @@ public:
           {
           case INT_COLUMN:
             parseInt(item.current<int>());
+            break;
+          case LONG_COLUMN:
+            parseLong(item.current<long>());
             break;
           case STRING_COLUMN:
             parseString(item.current<std::string>());
@@ -329,9 +383,9 @@ public:
       skipChar('}');
     }
 
-  void parse(const char *buffer)
+  void parse(const char *buffer, const int start=0)
     {
-      m_buffer = buffer;
+      m_buffer = buffer+start;
       m_initialBuffer = buffer;
 
       try
@@ -344,7 +398,7 @@ public:
         parseAssociationss();
         skipChar('}');
       }
-      catch(ParseError &e)
+      catch(ParseError &)
       {
         int position = m_buffer - m_initialBuffer ;
         std::string parsedSentence(m_initialBuffer + position);

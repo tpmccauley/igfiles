@@ -1,4 +1,3 @@
-// Supported types
 #include <IgCollection.h>
 
 #include <string>
@@ -52,12 +51,12 @@ std::ostream &operator<<(std::ostream &stream, IgDataStorage &storage)
 {
   // Stream the types.
   stream << "{"
-         << "'Types': {";
+         << "\"Types\": {";
   for (size_t cni = 0, cne = storage.collectionNames().size(); cni != cne; ++cni)
   {
     const char *collectionName = storage.collectionNames()[cni].c_str();
     IgCollection &collection = storage.getCollection(collectionName);
-    
+
     stream << "\"" << collectionName << "\": [";
     for(size_t cti = 0, cte = collection.columnLabels().size(); cti != cte; ++cti)
     {
@@ -73,7 +72,7 @@ std::ostream &operator<<(std::ostream &stream, IgDataStorage &storage)
   stream << "},\n";
 
   // Stream the collection contents.
-  stream << "'Collections': {";
+  stream << "\"Collections\": {";
   for (size_t cni = 0, cne = storage.collectionNames().size(); cni != cne; ++cni)
   {
     const char *collectionName = storage.collectionNames()[cni].c_str();
@@ -82,9 +81,9 @@ std::ostream &operator<<(std::ostream &stream, IgDataStorage &storage)
       stream << ",\n";
   }
   stream << "},\n";
-  
+
   // Stream the associations.
-  stream << "'Associations': {";
+  stream << "\"Associations\": {";
   for (size_t ai = 0, ae = storage.associationsNames().size(); ai != ae; ++ai)
   {
     const char *associationsName = storage.associationsNames()[ai].c_str();
@@ -112,13 +111,13 @@ IgProperty::IgProperty(IgCollection &collection, const char *name)
 
 /** Associate two references @a a and @a b between themselves,
     effectively creating an association between the two.
-    
+
     Given that we are most likely inserting associations so that reference
     @a and @b are ordered we exploit this fact to make sure that their store
     is maintained that way.
 
     @a a a reference to an object in one of the collections in the IgDataStorage.
-    
+
     @a b a reference to an object in one of the collections in the IgDataStorage.
  */
 void

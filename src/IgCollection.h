@@ -2,6 +2,7 @@
 #define IGUANA_IG_COLLECTION_H
 
 #include <IgLinearAlgebra.h>
+
 #include <cstring>
 #include <string>
 #include <cassert>
@@ -13,7 +14,7 @@
 /** A reference to a particular row in a particular collection */
 struct IgRef
 {
-  /** Builds a default IgRef. The reason why we use MAX_SIZE as index is 
+  /** Builds a default IgRef. The reason why we use MAX_SIZE as index is
       because this way we can make sure that when an Association, is created
       using one default IgRef, such an Association ends up after all the
       other Associations if the same kind.
@@ -58,6 +59,7 @@ struct IgRef
 
 enum ColumnType {
   INT_COLUMN = 0,           // int
+  LONG_COLUMN,          // long
   STRING_COLUMN,            // std::string
   DOUBLE_COLUMN,            // double
   VECTOR_2D,                // A 2vector of doubles
@@ -74,7 +76,7 @@ struct ColumnTypeHelper
   static ColumnType typeId(void)
     {
       assert(false);
-      return -1;
+      return INVALID;
     }
 };
 
@@ -85,6 +87,16 @@ struct ColumnTypeHelper<int>
     {
       return INT_COLUMN;
     }
+};
+
+template <>
+struct ColumnTypeHelper<long>
+{
+  static ColumnType typeId(void)
+    {
+      return LONG_COLUMN;
+    }
+
 };
 
 template <>
@@ -132,7 +144,7 @@ public:
   IgColumnHandle(void)
     :m_data(0), m_type(INVALID)
     {}
-  
+
   IgColumnHandle(void *data, ColumnType type)
     :m_data(data), m_type(type)
     { }
@@ -156,6 +168,9 @@ public:
       {
       case INT_COLUMN:
         return static_cast<std::vector<int> *>(m_data)->size();
+        break;
+      case LONG_COLUMN:
+        return static_cast<std::vector<long> *>(m_data)->size();
         break;
       case STRING_COLUMN:
         return static_cast<std::vector<std::string> *>(m_data)->size();
@@ -184,6 +199,9 @@ public:
       case INT_COLUMN:
         stream << get<int>(position);
         break;
+      case LONG_COLUMN:
+        stream << get<long>(position);
+        break;
       case STRING_COLUMN:
         stream << "\""<< get<std::string>(position) << "\"";
         break;
@@ -193,30 +211,31 @@ public:
       case VECTOR_2D:
         {
           IgV2d &v = get<IgV2d>(position);
-          stream << "("<< v.x() << ", " << v.y() << ")";
+          stream << "["<< v.x() << ", " << v.y() << "]";
         }
         break;
       case VECTOR_3D:
         {
           IgV3d &v = get<IgV3d>(position);
-          stream << "("<< v.x() << ", " << v.y() << ", " << v.z() << ")";
+          stream << "["<< v.x() << ", " << v.y() << ", " << v.z() << "]";
         }
         break;
       case VECTOR_4D:
         {
           IgV4d &v = get<IgV4d>(position);
-          stream << "("<< v.x() << ", " << v.y() << ", " << v.z() << ", " << v.w() << ")";
+          stream << "["<< v.x() << ", " << v.y() << ", " << v.z() << ", " << v.w() << "]";
         }
         break;
       default:
         assert(false);
       }
     }
-    
+
   const char *typeName()
     {
       static const char *typenames[] = {
         "int",
+        "long",
         "string",
         "double",
         "v2d",
@@ -231,6 +250,9 @@ public:
       {
       case INT_COLUMN:
         return doExtend<int>();
+        break;
+      case LONG_COLUMN:
+        return doExtend<long>();
         break;
       case DOUBLE_COLUMN:
         return doExtend<double>();
@@ -260,6 +282,9 @@ public:
       case INT_COLUMN:
         return doResize<int>(newSize);
         break;
+      case LONG_COLUMN:
+        return doResize<long>(newSize);
+        break;
       case DOUBLE_COLUMN:
         return doResize<double>(newSize);
         break;
@@ -287,6 +312,9 @@ public:
       {
       case INT_COLUMN:
         doReserve<int>(size);
+        break;
+      case LONG_COLUMN:
+        doReserve<long>(size);
         break;
       case DOUBLE_COLUMN:
         doReserve<double>(size);
@@ -316,6 +344,9 @@ public:
       case INT_COLUMN:
         doCompress<int>();
         break;
+      case LONG_COLUMN:
+        doCompress<long>();
+        break;
       case DOUBLE_COLUMN:
         doCompress<double>();
         break;
@@ -343,6 +374,9 @@ public:
       {
       case INT_COLUMN:
         doClear<int>();
+        break;
+      case LONG_COLUMN:
+        doClear<long>();
         break;
       case DOUBLE_COLUMN:
         doClear<double>();
@@ -407,6 +441,9 @@ public:
       case INT_COLUMN:
         doDestroy<int>();
         break;
+      case LONG_COLUMN:
+        doDestroy<long>();
+        break;
       case DOUBLE_COLUMN:
         doDestroy<double>();
         break;
@@ -446,9 +483,9 @@ private:
 
 class IgCollection;
 
-/** An IgProperty is used to index 
+/** An IgProperty is used to index
     a given column inside an IgCollection.
-  
+
     FIXME: is this really a good idea?
           Why not using IgColumnHandle directly???
   */
@@ -482,7 +519,7 @@ public:
   IgColumn(IgCollection *collection, const char *name)
   : IgProperty(collection, name)
   {}
-  
+
   typedef T Type;
   typedef T Original;
 };
@@ -524,7 +561,7 @@ public:
     {
       return m_rowPosition;
     }
-    
+
     iterator operator++(int /*dummy*/)
       {
         iterator tmp(m_collection, m_rowPosition);
@@ -613,11 +650,11 @@ public:
       return m_properties.back();
     }
 
-  iterator begin(void)    
+  iterator begin(void)
     {
       return iterator(this, 0);
     }
-  
+
   iterator end(void)
     {
       return iterator(this, m_rowCount);
@@ -696,7 +733,7 @@ public:
     }
 
   IgCollectionItem create();
-  
+
   const char *name(void) const
     {
       return m_name.c_str();
@@ -711,7 +748,7 @@ public:
     { return m_columnLabelsIndex; };
 
   IgCollectionItem operator[](size_t i);
-  
+
 protected:
   IgCollection(const char *name, int id)
     : m_name(name), m_id(id), m_rowCount(0)
@@ -902,7 +939,7 @@ public:
   template <class T>
   typename IgColumn<T>::Type get(IgColumn<T> &column)
     {
-      return column.handle().get<typename IgColumn<T>::Original>(m_position);
+      return column.handle().template get<typename IgColumn<T>::Original>(m_position);
     }
 
   template <class T>
@@ -967,38 +1004,38 @@ class IgAssociations
 {
   struct AssociationRef
   {
-    /** Constructor an association between two references. 
+    /** Constructor an association between two references.
         Notice that if the @a iB ref is not given, such an association
         will always be stored after all the Associations sharing the same
         iA.
 
         Also notice that iA is effectively used as a key of the association,
         while iB is the actual retrievable. I.e. if you do:
-        
+
             associations.associate(a, b);
-        
+
         If you do:
-            
+
             associations.begin(a);
-        
+
         you will get an iterator pointing to b, while if you do:
-        
+
             associations.begin(b);
-        
-        you will *NOT* get an iterator pointing to a. If you want such a 
+
+        you will *NOT* get an iterator pointing to a. If you want such a
         behavior you need to do:
-        
+
             associations.associate(a, b);
             associations.associate(b, a);
-        
+
         @a iKey an IgRef to the object to associate which acts as a key.
-        
+
         @a iValue an IgRef to the object that acts as a value.
     */
     AssociationRef(const IgRef &iKey = IgRef(), const IgRef &iValue = IgRef())
     :key(iKey), value(iValue)
     {}
-    
+
     /** Order for Association, first by key ref, then by value ref,
         This is the natural order in which objects are inserted in
         associations.
@@ -1020,20 +1057,20 @@ public:
   class iterator
   {
   public:
-    /** An end iterator. Both m_i and m_end will be initialised to 
+    /** An end iterator. Both m_i and m_end will be initialised to
         end(). */
     iterator(void)
       :m_isOutOfRange(true)
     {
     }
-    /** Constructs an iterator over a given set of associations. 
-      
+    /** Constructs an iterator over a given set of associations.
+
         @a first is the first element in the range.
-        
+
         @a last is the last element in the range.
-        
+
         @a storage is the storage of the collections being associated,
-                   so that we can retrieve objects directly. 
+                   so that we can retrieve objects directly.
      */
     iterator(const Associations::iterator &first,
              const Associations::iterator &last,
@@ -1044,7 +1081,7 @@ public:
      m_storage(storage)
     {
     }
-    
+
     IgCollectionItem operator*();
 
     IgCollectionItem operator->(void)
@@ -1058,7 +1095,7 @@ public:
       ++(*this);
       return tmp;
     }
-    
+
     iterator &operator++(void)
     {
       m_i++;
@@ -1073,7 +1110,7 @@ public:
       --(*this);
       return tmp;
     }
-    
+
     iterator &operator--(void)
     {
       m_i--;
@@ -1085,7 +1122,7 @@ public:
         m_i += delta;
         if (m_i >= m_end)
           m_isOutOfRange = true;
-        
+
         return *this;
       }
 
@@ -1096,9 +1133,9 @@ public:
           m_isOutOfRange = false;
         return *this;
       }
-    
+
     /** Compares two iterators. They are the same also if  we reached
-        the end of the range. They are different if one of the two is out of 
+        the end of the range. They are different if one of the two is out of
         range.
      */
     bool operator==(const iterator& other)
@@ -1111,7 +1148,7 @@ public:
           return false;
         return m_i == other.m_i;
       }
-    
+
     bool operator!=(const iterator& other)
       {
         if (m_isOutOfRange && other.m_isOutOfRange)
@@ -1122,7 +1159,7 @@ public:
           return true;
         return m_i != other.m_i;
       }
-    
+
     iterator operator+(int value)
       {
         if (m_i + value >= m_end)
@@ -1130,7 +1167,7 @@ public:
 
         return iterator(m_i + value, m_end, m_storage);
       }
-      
+
     size_t distance(iterator &other)
     {
       return std::distance(m_i, other.m_i);
@@ -1152,15 +1189,15 @@ public:
 
   /** @return an iterator to the first IgCollectionItem associated with
       the one pointed by @a i.
-      
-      @a i an iterator to an IgCollectionItem of which we want to get the 
+
+      @a i an iterator to an IgCollectionItem of which we want to get the
            associated items.
     */
   iterator begin(const IgCollection::iterator &i)
     { return begin(*i); }
 
   /** @return an iterator to the first IgCollectionItem associated with @a ref.
-  
+
      @a ref an IgRef of which we want to get the associated items.
   */
   iterator begin(const IgRef &ref)
@@ -1173,25 +1210,25 @@ public:
         m_cachedRef = IgRef();
         m_resetIterators = false;
       }
-      
+
       // If the ref is the same as the last one cached we simply
       // return it again.
       if (ref == m_cachedRef)
         return m_cachedRangeIterator;
       m_cachedRef = ref;
-      
+
       // First possible association for a given collection.
       // In general associations are navigated in order, which
       // means we can short circuit finding the begin(i+1) reusing end(i).
       AssociationRef first(ref, IgRef(0, 0));
-      
+
       // Given the fact that begin(i+1) is likely to follow up begin(i),
       // we exploit this fact by reusing the old range end as new rangeBegin.
       // In case the above was not the case, we simply fallback to
       // a full binary search of the starting point.
       if (m_rangeEnd != m_associations.end()
           && m_rangeEnd + 1 != m_associations.end()
-          && *m_rangeEnd < first 
+          && *m_rangeEnd < first
           && first < *(m_rangeEnd + 1))
         m_rangeBegin = m_rangeEnd;
       else
@@ -1200,7 +1237,7 @@ public:
                                         first);
 
       // We then search for the end of the range and return the iterator
-      // associated to the range. To do so we look for the lower_bound of the 
+      // associated to the range. To do so we look for the lower_bound of the
       // last possible association for a given ref.
       AssociationRef last(ref);
       m_rangeEnd = std::upper_bound(m_rangeBegin, m_associations.end(), last);
@@ -1208,9 +1245,9 @@ public:
       m_cachedRangeIterator = iterator(m_rangeBegin, m_rangeEnd, m_storage);
       return m_cachedRangeIterator;
     }
-  
+
   /** @return the end iterator for all the associations related to @a ref.
-      Notice that the end iterator is always the same regardless of the 
+      Notice that the end iterator is always the same regardless of the
       IgRef that was used for begin.
   */
   iterator end(void)
@@ -1220,13 +1257,13 @@ public:
 
   /** Return the number of associations */
   size_t size(void)
-    { 
+    {
       return m_associations.size();
     }
 
   /** Clears all the associations*/
   void clear(void)
-    { 
+    {
       m_associations.clear();
       m_resetIterators = true;
     }
@@ -1237,11 +1274,11 @@ public:
     { m_associations.reserve(capacity);}
 
   /** Resizes the storage to @a newSize elements. Notice that those elements
-      will be invalid associations, but the order in the storage will be 
+      will be invalid associations, but the order in the storage will be
       maintained.
     */
   void resize(size_t newSize)
-    { 
+    {
       m_associations.resize(newSize);
       m_resetIterators = true;
     }
@@ -1412,7 +1449,7 @@ IgCollection::iterator::operator->(void)
   return **this;
 }
 
-inline IgCollectionItem 
+inline IgCollectionItem
 IgAssociations::iterator::operator*()
 {
   assert(!m_isOutOfRange);
